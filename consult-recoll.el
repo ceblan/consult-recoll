@@ -196,7 +196,10 @@ Set to nil to use the default `title (path)' format."
   "Open file of corresponding completion CANDIDATE."
   (when candidate
     (let* ((url (consult-recoll--candidate-url candidate))
-           (mime (consult-recoll--candidate-mime candidate))
+					 (mime (if (string-suffix-p ".epub" url)
+										 (format "%s" "application/epub+zip")
+									 (consult-recoll--candidate-mime candidate)))
+						;;(consult-recoll--candidate-mime candidate))
            (open (cond ((cdr (assoc mime consult-recoll-open-fns)))
                        (consult-recoll-open-fn)
                        ((string= mime "text/html")
