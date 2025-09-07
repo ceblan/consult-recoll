@@ -4,11 +4,11 @@
 ;; Maintainer: Jose A Ortega Ruiz <jao@gnu.org>
 ;; Keywords: docs, convenience
 ;; License: GPL-3.0-or-later
-;; Version: 0.8.1
-;; Package-Requires: ((emacs "26.1") (consult "0.19"))
+;; Version: 1.0.0
+;; Package-Requires: ((emacs "26.1") (consult "2.0"))
 ;; Homepage: https://codeberg.org/jao/consult-recoll
 
-;; Copyright (C) 2021-2023  Free Software Foundation, Inc.
+;; Copyright (C) 2021-2025  Free Software Foundation, Inc.
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -54,6 +54,15 @@
 
 (defcustom consult-recoll-prompt "Recoll search: "
   "Prompt used by `consult-recoll'."
+  :type 'string)
+
+(defcustom consult-recoll-program "recollq"
+  "Program (or full path to program) used to perform text searches.
+
+This is typically recollq if you have a standard recoll distribution,
+but can be also be set to recoll, or the full path to it if it's
+not in your PATH. In the latter case, you'll want to add -t to
+`consult-recoll-search-flags'."
   :type 'string)
 
 (defcustom consult-recoll-search-flags 'query
@@ -132,7 +141,7 @@ Set to nil to use the default `title (path)' format."
   (setq consult-recoll--current nil)
   (setq consult-recoll--index 0)
   (setq consult-recoll--snippets nil)
-  `("recollq" ,@(consult-recoll--search-flags) ,text))
+  `(,consult-recoll-program ,@(consult-recoll--search-flags) ,text))
 
 (defun consult-recoll--format (title urln mime)
   (if consult-recoll-format-candidate
@@ -288,10 +297,10 @@ Set to nil to use the default `title (path)' format."
 (defun consult-recoll--search (&optional initial)
   "Perform an asynchronous recoll search via `consult--read'.
 If given, use INITIAL as the starting point of the query."
-  (consult--read (consult--async-command
-                     #'consult-recoll--command
-                   (consult--async-filter #'identity)
-                   (consult--async-map #'consult-recoll--transformer))
+  (consult--read (consult--async-pipeline
+                  (consult--process-collection #'consult-recoll--command)
+                  (consult--async-map #'consult-recoll--transformer)
+                  (consult--async-filter #'identity))
                  :annotate #'consult-recoll--annotation
                  :prompt consult-recoll-prompt
                  :require-match t
@@ -301,7 +310,7 @@ If given, use INITIAL as the starting point of the query."
                              #'consult-recoll--preview)
                  :group (and consult-recoll-group-by-mime
                              #'consult-recoll--group)
-                 :initial (consult--async-split-initial initial)
+                 :initial initial
                  :history '(:input consult-recoll-history)
                  :category 'recoll-result))
 
